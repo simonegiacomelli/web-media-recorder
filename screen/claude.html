@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Recorder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        video {
+            max-width: 100%;
+            margin: 20px 0;
+            background-color: #f0f0f0;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        #download-link {
+            display: block;
+            margin: 20px 0;
+            color: blue;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Screen Recorder using JavaScript</h1>
+
+    <div>
+        <button id="start-btn">Start Screen Recording</button>
+        <button id="stop-btn" disabled>Stop Recording</button>
+    </div>
+    <video id="recorded-video" controls></video>
+    <a id="download-link" download="recorded-screen.webm" style="display: none;">Download Recorded Screen</a>
+
+    <script>
+        const startButton = document.getElementById('start-btn');
+        const stopButton = document.getElementById('stop-btn');
+        const recordedVideoElement = document.getElementById('recorded-video');
+        const downloadLink = document.getElementById('download-link');
+
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        // Start screen sharing and recording
+        async function startScreenRecording() {
+            try {
+                // Request screen capture
+                const stream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: true, 
+                    audio: true 
+                });
+
+                // Set up MediaRecorder to record the screen stream
+                mediaRecorder = new MediaRecorder(stream);
+
+                // When data becomes available, store it
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                // When recording stops, create a video blob and show it
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const videoURL = URL.createObjectURL(blob);
+                    recordedVideoElement.src = videoURL;
+                    downloadLink.href = videoURL;
+                    downloadLink.style.display = 'block';
+
+                    // Stop all tracks to free up resources
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                // Start the recording
+                mediaRecorder.start();
+                startButton.disabled = true;
+                stopButton.disabled = false;
+            } catch (error) {
+                console.error('Error starting screen recording:', error);
+                alert('Unable to start screen recording. Please check permissions.');
+            }
+        }
+
+        // Start recording event listener
+        startButton.addEventListener('click', () => {
+            recordedChunks = [];
+            startScreenRecording();
+            downloadLink.style.display = 'none';
+        });
+
+        // Stop recording event listener
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        });
+    </script>
+</body>
+</html>
